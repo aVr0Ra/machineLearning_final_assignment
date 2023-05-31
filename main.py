@@ -5,19 +5,18 @@ from Node import Node
 
 class CART:
     def __init__(self,Train,features,label,tree_type,feature_name):
-        self.Train=Train #训练集
-        self.features=features #特征
-        self.label=label #标签
+        self.Train=Train
+        self.features=features
+        self.label=label
         if tree_type=="c":
             self.root=self.create_classification_tree(Train)
         else:
             self.root=self.create_regression_tree(Train)
         self.feature_name=feature_name
-        self.roots=[] #存放子树序列
-        #self.roots.append(self.root)#首先将树的初始形式放入roots中
+        self.roots=[]
         self.a=sys.maxsize
         self.minnode=None
-    def is_one_class(self, data, label):  # 判断data中的数据是否属于同一类 并返回类数组
+    def is_one_class(self, data, label):
         X = data[:, label:label + 1]
         labels = []
         for i in range(X.shape[0]):
@@ -30,26 +29,26 @@ class CART:
     def cost(self,data):
         X=data[:,self.label:self.label+1]
         X=X.astype(int)
-        avg = np.sum(X)/X.shape[0] #平均值
+        avg = np.sum(X)/X.shape[0]
         sum = 0
         for i in range(X.shape[0]):
            sum+= (X[i][0]-avg)**2
         return sum
-    def create_regression_tree(self,data): #生成一棵回归树
+    def create_regression_tree(self,data):
         node=None
         min_cost=sys.maxsize
         min_feature=0
         min_split=0
         min_left=None
         min_right=None
-        if self.is_one_class(data, self.label):  # 如果数据都属于一类
-            node = Node(data, None,None, self.label, 0 ,self.max_num_class(data, self.label))  # 叶子结点
-        elif len(self.features) == 0:  # 没有可供划分的特征了
-            node = Node(data, None, None, self.label, 0, self.max_num_class(data, self.label))  # 叶子结点
+        if self.is_one_class(data, self.label):
+            node = Node(data, None,None, self.label, 0 ,self.max_num_class(data, self.label))
+        elif len(self.features) == 0:
+            node = Node(data, None, None, self.label, 0, self.max_num_class(data, self.label))
         else:
-            for i in self.features: #遍历所有特征取值
-                d=data[np.argsort(data[:, i])] #以这个特征的大小来进行排序
-                for j in range(d.shape[0]-1):#以特征j的每一个取值来分割成两个区域
+            for i in self.features:
+                d=data[np.argsort(data[:, i])]
+                for j in range(d.shape[0]-1):
                    left = d[0:j+1, :]
                    right=d[j+1:, ]
                    left_cost=self.cost(left)
@@ -65,34 +64,33 @@ class CART:
             right_node = self.create_regression_tree(min_right)
             node= Node(data, left_node,right_node, min_feature, min_split ,0)
         return node
-    def class_num(self, data, feature):  # 对于某个特征而言 他有多少种取值
+    def class_num(self, data, feature):
         X = data[: ,feature:feature + 1]
         fea_values = {}
         for i in range(X.shape[0]):
-            # print(X[i])
             if X[i][0] not in fea_values:
                 fea_values[X[i][0]] = 1
             else:
                 fea_values[X[i][0]] += 1
         return fea_values
 
-    def cal_gini(self,data):#计算一个数据的基尼指数
-        label=self.class_num(data,self.label)#求每个类有多少条数据
+    def cal_gini(self,data):
+        label=self.class_num(data,self.label)
         gini=0
         for k,v in label.items():
             p=v/data.shape[0]
             gini+=p*(1-p)
         return gini
 
-    def basefeature_cal_gini(self,data,feature): #求某一个特征的基尼指数
+    def basefeature_cal_gini(self,data,feature):
         fea_values=self.class_num(data, feature)
         min_gini=sys.maxsize
         min_value=None
         min_left=None
         min_right=None
-        for k in fea_values.keys(): #对feature的每一个取值计算gini系数
-            d1=data[(data[:, feature] == k),: ] #特征feature 取值是k的集合
-            d2=data[(data[:, feature] != k),: ]#特征feature 取值不是k 的集合
+        for k in fea_values.keys():
+            d1=data[(data[:, feature] == k),: ]
+            d2=data[(data[:, feature] != k),: ]
             r1=d1.shape[0]/data.shape[0]
             r2=d2.shape[0]/data.shape[0]
             gini=r1*self.cal_gini(d1)+r2*self.cal_gini(d2)
@@ -103,7 +101,7 @@ class CART:
                 min_right=d2
         return min_gini,min_value,min_left,min_right
 
-    def create_classification_tree(self,data): #生成一棵分类树
+    def create_classification_tree(self,data):
         min_gini=sys.maxsize
         min_split=None
         min_feature=None
@@ -111,10 +109,10 @@ class CART:
         min_right=None
         if data.shape[0]==0:
             return None
-        elif self.is_one_class(data, self.label):  # 如果数据都属于一类
-            node = Node(data, None, None, self.label, 0, self.max_num_class(data, self.label))  # 叶子结点
-        elif len(self.features) == 0:  # 没有可供划分的特征了
-            node = Node(data, None, None, self.label, 0, self.max_num_class(data, self.label))  # 叶子结点
+        elif self.is_one_class(data, self.label):
+            node = Node(data, None, None, self.label, 0, self.max_num_class(data, self.label)) 
+        elif len(self.features) == 0:
+            node = Node(data, None, None, self.label, 0, self.max_num_class(data, self.label))
         else:
             for i in self.features:
                 gini,value,left,right=self.basefeature_cal_gini(data,i)
@@ -130,8 +128,7 @@ class CART:
             node = Node(data, left_node, right_node, min_feature, min_split, 0)
         return node
 
-    def max_num_class(self, data, label):  # 返回取值最多的那一类
-        # X = data[:, label:label + 1]
+    def max_num_class(self, data, label):
         labels = self.class_num(data, label)
         max_num = 0
         max_class = 0
@@ -159,7 +156,7 @@ class CART:
         return copy_node
 
     def need_prune(self, node):
-        if node.left.feature != self.label or node.right.feature != self.label:  # 还有内部结点
+        if node.left.feature != self.label or node.right.feature != self.label:
             return True
         else:
             return False
@@ -183,7 +180,7 @@ class CART:
     def cal_prune_what(self,node):
         leaf_error=0
         leaf_num=0
-        if node.left==None and node.right==None:#如果该结点是叶子结点
+        if node.left==None and node.right==None:
             return self.error(node.data),1
         else:
             if node.left!=None:
@@ -204,7 +201,7 @@ class CART:
 
     def pre_order(self, node):
         if node != None:
-            if node.left == None and node.right == None:  # 如果是叶子结点
+            if node.left == None and node.right == None:
                 print(str(node.value) + "\n")
             else:
                 print(self.feature_name[node.feature])
@@ -223,12 +220,11 @@ class CART:
                 queue.append(node.left)
                 queue.append(node.right)
     def fit(self,node,X):
-        while node.left!=None and node.right!=None:# 如果不是叶子结点
+        while node.left!=None and node.right!=None:
             feature=node.feature
             split=node.split
             if X[feature] == split:
                 node=node.left
             else:
                 node=node.right
-        print("X的预测结果")
-        print(node.value)
+        print("本次的预测结果为" + str(node.value))
